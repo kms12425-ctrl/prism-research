@@ -4,6 +4,42 @@ import pickle
 import redis
 
 
+async def _async_lpop_compat(client, key, count=1):
+    if count <= 1:
+        obj_bytes = await client.lpop(key)
+        return [] if obj_bytes is None else [obj_bytes]
+
+    try:
+        obj_bytes = await client.lpop(key, count=count)
+        return obj_bytes or []
+    except redis.ResponseError:
+        items = []
+        for _ in range(count):
+            obj_bytes = await client.lpop(key)
+            if obj_bytes is None:
+                break
+            items.append(obj_bytes)
+        return items
+
+
+def _sync_lpop_compat(client, key, count=1):
+    if count <= 1:
+        obj_bytes = client.lpop(key)
+        return [] if obj_bytes is None else [obj_bytes]
+
+    try:
+        obj_bytes = client.lpop(key, count=count)
+        return obj_bytes or []
+    except redis.ResponseError:
+        items = []
+        for _ in range(count):
+            obj_bytes = client.lpop(key)
+            if obj_bytes is None:
+                break
+            items.append(obj_bytes)
+        return items
+
+
 class AsyncRedisClient:
     def __init__(self, host, port, db):
         self.host = host
@@ -18,7 +54,8 @@ class AsyncRedisClient:
                 await self.client.close()
             except Exception:
                 pass  # Ignore errors during close
-        self.client = redis.asyncio.Redis(host=self.host, port=self.port, db=self.db)
+        self.client = redis.asyncio.Redis(
+            host=self.host, port=self.port, db=self.db)
         # Test connection
         await self.client.ping()
 
@@ -27,12 +64,8 @@ class AsyncRedisClient:
         await self.client.rpush(key, obj_bytes)
 
     async def recv_pyobj_non_block(self, key, count=1):
-        obj_bytes = await self.client.lpop(key, count=count)
-        if isinstance(obj_bytes, list):
-            return [pickle.loads(obj) for obj in obj_bytes]
-        if obj_bytes is None:
-            return []
-        return pickle.loads(obj_bytes)
+        obj_bytes = await _async_lpop_compat(self.client, key, count=count)
+        return [pickle.loads(obj) for obj in obj_bytes]
 
     async def recv_pyobj_block(self, key):
         _, obj_bytes = await self.client.blpop(key)
@@ -68,12 +101,8 @@ class RedisClient:
         self.client.rpush(key, obj_bytes)
 
     def recv_pyobj_non_block(self, key, count=1):
-        obj_bytes = self.client.lpop(key, count=count)
-        if isinstance(obj_bytes, list):
-            return [pickle.loads(obj) for obj in obj_bytes]
-        if obj_bytes is None:
-            return []
-        return pickle.loads(obj_bytes)
+        obj_bytes = _sync_lpop_compat(self.client, key, count=count)
+        return [pickle.loads(obj) for obj in obj_bytes]
 
     def get_queue_length(self, key):
         return self.client.llen(key)
@@ -113,7 +142,8 @@ if __name__ == "__main__":
             GenerateReqInput(
                 model=model_names[i % len(model_names)],
                 text=f"{i} What is the meaning of life?",
-                sampling_params={"temperature": 0.5, "top_p": 0.9, "top_k": 50},
+                sampling_params={"temperature": 0.5,
+                                 "top_p": 0.9, "top_k": 50},
                 slo=10,
             )
         )

@@ -2,11 +2,35 @@
 Usage:
 
 python3 async_io.py
+
+Optional environment variables:
+- SGLANG_EXAMPLE_MODEL
+- SGLANG_EXAMPLE_LOAD_FORMAT
 """
 
 import asyncio
+import os
 
 from sglang import Runtime
+
+
+def build_runtime_kwargs():
+    runtime_kwargs = {
+        "model_path": os.getenv(
+            "SGLANG_EXAMPLE_MODEL", "Qwen/Qwen2.5-0.5B-Instruct"
+        ),
+        "disable_cuda_graph": os.getenv(
+            "SGLANG_EXAMPLE_DISABLE_CUDA_GRAPH", "1"
+        ).lower()
+        not in {"0", "false", "no"},
+    }
+    load_format = os.getenv("SGLANG_EXAMPLE_LOAD_FORMAT")
+    if load_format:
+        runtime_kwargs["load_format"] = load_format
+    mem_fraction_static = os.getenv("SGLANG_EXAMPLE_MEM_FRACTION_STATIC")
+    if mem_fraction_static:
+        runtime_kwargs["mem_fraction_static"] = float(mem_fraction_static)
+    return runtime_kwargs
 
 
 async def generate(
@@ -36,7 +60,7 @@ async def generate(
 
 
 if __name__ == "__main__":
-    runtime = Runtime(model_path="meta-llama/Llama-2-7b-chat-hf")
+    runtime = Runtime(**build_runtime_kwargs())
     print("--- runtime ready ---\n")
 
     prompt = "Who is Alan Turing?"

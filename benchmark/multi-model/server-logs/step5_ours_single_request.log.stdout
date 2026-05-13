@@ -1,0 +1,41 @@
+[transformers] `torch_dtype` is deprecated! Use `dtype` instead!
+[ModelConfig(model_name='model_1', model_path='Qwen/Qwen2.5-0.5B-Instruct', tokenizer_path='Qwen/Qwen2.5-0.5B-Instruct', tp_size=1, init_placements=[{'gpu_ids': [0], 'on': True, 'max_memory_pool_size': 2}]), ModelConfig(model_name='model_2', model_path='Qwen/Qwen2.5-0.5B-Instruct', tokenizer_path='Qwen/Qwen2.5-0.5B-Instruct', tp_size=1, init_placements=[{'gpu_ids': [0], 'on': True, 'max_memory_pool_size': 2}])]
+Initializing torch distributed...
+Torch distributed initialized.
+Loading 1 shared models to cpu...
+INFO 04-28 10:57:36 weight_utils.py:243] Using model weights format ['*.safetensors']
+INFO 04-28 10:57:37 weight_utils.py:288] No model.safetensors.index.json found in remote.
+Loading safetensors checkpoint shards:   0% Completed | 0/1 [00:00<?, ?it/s]
+Loading safetensors checkpoint shards: 100% Completed | 1/1 [00:00<00:00,  1.63it/s]
+Loading safetensors checkpoint shards: 100% Completed | 1/1 [00:00<00:00,  1.63it/s]
+
+Shared models loaded in 8.23 seconds.
+Preparing engine for model_1 (Qwen/Qwen2.5-0.5B-Instruct) on GPU [0] with initialize status on=True
+Preparing engine for model_2 (Qwen/Qwen2.5-0.5B-Instruct) on GPU [0] with initialize status on=True
+[transformers] `torch_dtype` is deprecated! Use `dtype` instead!
+[transformers] `torch_dtype` is deprecated! Use `dtype` instead!
+INFO 04-28 10:57:56 weight_utils.py:243] Using model weights format ['*.safetensors']
+INFO 04-28 10:57:57 weight_utils.py:243] Using model weights format ['*.safetensors']
+INFO 04-28 10:57:57 weight_utils.py:288] No model.safetensors.index.json found in remote.
+Loading safetensors checkpoint shards:   0% Completed | 0/1 [00:00<?, ?it/s]
+Loading safetensors checkpoint shards: 100% Completed | 1/1 [00:00<00:00,  1.64it/s]
+Loading safetensors checkpoint shards: 100% Completed | 1/1 [00:00<00:00,  1.63it/s]
+
+INFO 04-28 10:57:58 weight_utils.py:288] No model.safetensors.index.json found in remote.
+Loading safetensors checkpoint shards:   0% Completed | 0/1 [00:00<?, ?it/s]
+Loading safetensors checkpoint shards: 100% Completed | 1/1 [00:00<00:00,  1.60it/s]
+Loading safetensors checkpoint shards: 100% Completed | 1/1 [00:00<00:00,  1.60it/s]
+
+Controller process started.
+[2026-04-28 10:58:07] INFO:     Started server process [1893122]
+[2026-04-28 10:58:07] INFO:     Waiting for application startup.
+[2026-04-28 10:58:07] INFO:     Application startup complete.
+[2026-04-28 10:58:07] INFO:     Uvicorn running on http://127.0.0.1:30034 (Press CTRL+C to quit)
+[2026-04-28 10:58:08] INFO:     127.0.0.1:57888 - "GET /health HTTP/1.1" 200 OK
+[2026-04-28 10:58:08] INFO:     127.0.0.1:57888 - "GET /get_model_names HTTP/1.1" 200 OK
+[2026-04-28 10:58:08] INFO:     127.0.0.1:57904 - "GET /get_model_names HTTP/1.1" 200 OK
+[2026-04-28 10:58:08] INFO:     127.0.0.1:57918 - "GET /get_model_names HTTP/1.1" 200 OK
+[2026-04-28 10:58:09] INFO:     127.0.0.1:57934 - "POST /generate HTTP/1.1" 200 OK
+[2026-04-28 10:58:09] INFO:     127.0.0.1:57888 - "POST /generate HTTP/1.1" 200 OK
+[2026-04-28 10:58:09] INFO:     127.0.0.1:57888 - "POST /generate HTTP/1.1" 200 OK
+[2026-04-28 10:58:09] INFO:     127.0.0.1:57938 - "POST /generate HTTP/1.1" 200 OK

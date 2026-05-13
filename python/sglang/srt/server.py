@@ -29,12 +29,7 @@ import threading
 import time
 from http import HTTPStatus
 from typing import AsyncIterator, Dict, List, Optional, Union
-
 import orjson
-
-# Fix a bug of Python threading
-setattr(threading, "_register_atexit", lambda *args, **kwargs: None)
-
 import aiohttp
 import requests
 import uvicorn
@@ -43,7 +38,6 @@ from fastapi import FastAPI, File, Form, Request, UploadFile
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import ORJSONResponse, Response, StreamingResponse
 from uvicorn.config import LOGGING_CONFIG
-
 from sglang.lang.backend.runtime_endpoint import RuntimeEndpoint
 from sglang.srt.hf_transformers_utils import get_tokenizer
 from sglang.srt.managers.data_parallel_controller import (
@@ -72,7 +66,6 @@ from sglang.srt.openai_api.adapter import (
     v1_retrieve_file_content,
 )
 from sglang.srt.openai_api.protocol import ModelCard, ModelList
-from sglang.srt.server_args import PortArgs, ServerArgs
 from sglang.srt.utils import (
     add_api_key_middleware,
     assert_pkg_version,
@@ -84,6 +77,12 @@ from sglang.srt.utils import (
     set_ulimit,
 )
 from sglang.utils import get_exception_traceback
+from sglang.srt.server_args import PortArgs, ServerArgs
+
+
+# Fix a bug of Python threading
+setattr(threading, "_register_atexit", lambda *args, **kwargs: None)
+
 
 logger = logging.getLogger(__name__)
 
@@ -290,7 +289,8 @@ def available_models():
     served_model_names = [tokenizer_manager.served_model_name]
     model_cards = []
     for served_model_name in served_model_names:
-        model_cards.append(ModelCard(id=served_model_name, root=served_model_name))
+        model_cards.append(
+            ModelCard(id=served_model_name, root=served_model_name))
     return ModelList(data=model_cards)
 
 
@@ -357,6 +357,8 @@ def launch_engine(
     server_args.model_path, server_args.tokenizer_path = prepare_model_and_tokenizer(
         server_args.model_path, server_args.tokenizer_path
     )
+    model_names_to_model_paths = {
+        server_args.model_name: server_args.model_path}
 
     if server_args.dp_size == 1:
         # Launch tensor parallel scheduler processes
@@ -399,6 +401,7 @@ def launch_engine(
         args=(
             server_args,
             port_args,
+            model_names_to_model_paths,
         ),
     )
     detoken_proc.start()
@@ -406,7 +409,8 @@ def launch_engine(
     # Launch tokenizer process
     tokenizer_manager = RequestHandler(server_args, port_args)
     if server_args.chat_template:
-        load_chat_template_for_openai_api(tokenizer_manager, server_args.chat_template)
+        load_chat_template_for_openai_api(
+            tokenizer_manager, server_args.chat_template)
 
     # Wait for model to finish loading
     for i in range(len(scheduler_pipe_readers)):
@@ -441,7 +445,8 @@ def launch_server(
 
     # Send a warmup request
     t = threading.Thread(
-        target=_wait_and_warmup, args=(server_args, pipe_finish_writer, os.getpid())
+        target=_wait_and_warmup, args=(
+            server_args, pipe_finish_writer, os.getpid())
     )
     t.start()
 
@@ -507,7 +512,8 @@ def _wait_and_warmup(server_args, pipe_finish_writer, pid):
     for _ in range(120):
         time.sleep(1)
         try:
-            res = requests.get(url + "/get_model_info", timeout=5, headers=headers)
+            res = requests.get(url + "/get_model_info",
+                               timeout=5, headers=headers)
             assert res.status_code == 200, f"{res=}, {res.text=}"
             success = True
             break
@@ -575,6 +581,7 @@ class Runtime:
         **kwargs,
     ):
         """See the arguments in server_args.py::ServerArgs"""
+        self.pid = None
         self.server_args = ServerArgs(*args, log_level=log_level, **kwargs)
 
         # before python program terminates, call shutdown implicitly. Therefore, users don't have to explicitly call .shutdown()
@@ -591,7 +598,6 @@ class Runtime:
         self.generate_url = self.url + "/generate"
 
         # NOTE: We store pid instead of proc to fix some issues during __delete__
-        self.pid = None
         pipe_reader, pipe_writer = mp.Pipe(duplex=False)
 
         proc = mp.Process(
@@ -616,8 +622,9 @@ class Runtime:
         self.endpoint = RuntimeEndpoint(self.url)
 
     def shutdown(self):
-        if self.pid is not None:
-            kill_child_process(self.pid)
+        pid = getattr(self, "pid", None)
+        if pid is not None:
+            kill_child_process(pid)
             self.pid = None
 
     def cache_prefix(self, prefix: str):
@@ -778,7 +785,8 @@ class Engine:
                     if chunk.startswith(STREAM_END_SYMBOL):
                         break
                     else:
-                        data = json.loads(chunk[len(STREAM_CHUNK_START_SYMBOL) :])
+                        data = json.loads(
+                            chunk[len(STREAM_CHUNK_START_SYMBOL):])
                         data["text"] = data["text"][offset:]
                         offset += len(data["text"])
                         yield data
@@ -824,7 +832,8 @@ class Engine:
                     if chunk.startswith(STREAM_END_SYMBOL):
                         break
                     else:
-                        data = json.loads(chunk[len(STREAM_CHUNK_START_SYMBOL) :])
+                        data = json.loads(
+                            chunk[len(STREAM_CHUNK_START_SYMBOL):])
                         data["text"] = data["text"][offset:]
                         offset += len(data["text"])
                         yield data

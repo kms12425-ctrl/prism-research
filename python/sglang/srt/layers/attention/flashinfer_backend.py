@@ -30,7 +30,20 @@ if is_flashinfer_available():
         BatchPrefillWithRaggedKVCacheWrapper,
     )
     from flashinfer.cascade import merge_state
-    from flashinfer.decode import _grouped_size_compiled_for_decode_kernels
+    try:
+        from flashinfer.decode import _grouped_size_compiled_for_decode_kernels
+    except ImportError:
+        _grouped_size_compiled_for_decode_kernels = None
+
+
+def _should_use_tensor_cores(num_attention_heads: int, num_kv_heads: int) -> bool:
+    if _grouped_size_compiled_for_decode_kernels is None:
+        return True
+
+    return not _grouped_size_compiled_for_decode_kernels(
+        num_attention_heads,
+        num_kv_heads,
+    )
 
 
 class WrapperDispatch(Enum):
@@ -45,13 +58,10 @@ class FlashInferAttnBackend(AttentionBackend):
         super().__init__()
 
         # Parse constants
-        if not _grouped_size_compiled_for_decode_kernels(
+        self.decode_use_tensor_cores = _should_use_tensor_cores(
             model_runner.model_config.num_attention_heads // model_runner.tp_size,
             model_runner.model_config.get_num_kv_heads(model_runner.tp_size),
-        ):
-            self.decode_use_tensor_cores = True
-        else:
-            self.decode_use_tensor_cores = False
+        )
         self.max_context_len = model_runner.model_config.context_len
 
         assert not (
@@ -103,7 +113,8 @@ class FlashInferAttnBackend(AttentionBackend):
         self.decode_wrappers = []
         for _ in range(self.num_wrappers):
             self.prefill_wrappers_paged.append(
-                BatchPrefillWithPagedKVCacheWrapper(self.workspace_buffer, "NHD")
+                BatchPrefillWithPagedKVCacheWrapper(
+                    self.workspace_buffer, "NHD")
             )
             self.decode_wrappers.append(
                 BatchDecodeWithPagedKVCacheWrapper(
@@ -114,7 +125,8 @@ class FlashInferAttnBackend(AttentionBackend):
             )
 
         # Create indices updater
-        self.indices_updater_decode = FlashInferIndicesUpdaterDecode(model_runner, self)
+        self.indices_updater_decode = FlashInferIndicesUpdaterDecode(
+            model_runner, self)
         self.indices_updater_prefill = FlashInferIndicesUpdaterPrefill(
             model_runner, self
         )
@@ -141,7 +153,8 @@ class FlashInferAttnBackend(AttentionBackend):
             if forward_batch.extend_num_tokens >= 4096 and self.num_wrappers == 1:
                 use_ragged = True
 
-            extend_no_prefix = not torch.any(forward_batch.extend_prefix_lens).item()
+            extend_no_prefix = not torch.any(
+                forward_batch.extend_prefix_lens).item()
 
             self.indices_updater_prefill.update(
                 forward_batch.req_pool_indices,
@@ -231,7 +244,8 @@ class FlashInferAttnBackend(AttentionBackend):
         if not use_ragged:
             if k is not None:
                 assert v is not None
-                forward_batch.token_to_kv_pool.set_kv_buffer(layer, cache_loc, k, v)
+                forward_batch.token_to_kv_pool.set_kv_buffer(
+                    layer, cache_loc, k, v)
 
             o = prefill_wrapper_paged.forward(
                 q.contiguous().view(-1, layer.tp_q_head_num, layer.head_dim),
@@ -256,7 +270,8 @@ class FlashInferAttnBackend(AttentionBackend):
             else:
                 o2, s2 = prefill_wrapper_paged.forward_return_lse(
                     q.contiguous().view(-1, layer.tp_q_head_num, layer.head_dim),
-                    forward_batch.token_to_kv_pool.get_kv_buffer(layer.layer_id),
+                    forward_batch.token_to_kv_pool.get_kv_buffer(
+                        layer.layer_id),
                     causal=False,
                     sm_scale=layer.scaling,
                     logits_soft_cap=layer.logit_cap,
@@ -264,7 +279,8 @@ class FlashInferAttnBackend(AttentionBackend):
 
                 o, _ = merge_state(o1, s1, o2, s2)
 
-            forward_batch.token_to_kv_pool.set_kv_buffer(layer, cache_loc, k, v)
+            forward_batch.token_to_kv_pool.set_kv_buffer(
+                layer, cache_loc, k, v)
 
         return o.view(-1, layer.tp_q_head_num * layer.head_dim)
 
@@ -280,7 +296,8 @@ class FlashInferAttnBackend(AttentionBackend):
 
         if k is not None:
             assert v is not None
-            forward_batch.token_to_kv_pool.set_kv_buffer(layer, cache_loc, k, v)
+            forward_batch.token_to_kv_pool.set_kv_buffer(
+                layer, cache_loc, k, v)
 
         o = decode_wrapper.forward(
             q.contiguous().view(-1, layer.tp_q_head_num, layer.head_dim),
@@ -315,7 +332,8 @@ class FlashInferIndicesUpdaterDecode:
         self.head_dim = model_runner.model_config.head_dim
         self.data_type = model_runner.kv_cache_dtype
         self.q_data_type = model_runner.dtype
-        self.max_context_len = model_runner.req_to_token_pool.req_to_token.size(1)
+        self.max_context_len = model_runner.req_to_token_pool.req_to_token.size(
+            1)
         self.sliding_window_size = model_runner.sliding_window_size
 
         self.attn_backend = attn_backend
@@ -434,7 +452,7 @@ class FlashInferIndicesUpdaterDecode:
         kv_start_idx,
     ):
         bs = len(req_pool_indices)
-        kv_indptr[1 : bs + 1] = torch.cumsum(paged_kernel_lens, dim=0)
+        kv_indptr[1: bs + 1] = torch.cumsum(paged_kernel_lens, dim=0)
         kv_indptr = kv_indptr[: bs + 1]
         kv_indices = torch.empty(
             paged_kernel_lens_sum, dtype=torch.int32, device=self.device
@@ -476,7 +494,8 @@ class FlashInferIndicesUpdaterPrefill:
         self.head_dim = model_runner.model_config.head_dim
         self.data_type = model_runner.kv_cache_dtype
         self.q_data_type = model_runner.dtype
-        self.max_context_len = model_runner.req_to_token_pool.req_to_token.size(1)
+        self.max_context_len = model_runner.req_to_token_pool.req_to_token.size(
+            1)
         self.sliding_window_size = model_runner.sliding_window_size
 
         self.attn_backend = attn_backend
@@ -532,7 +551,8 @@ class FlashInferIndicesUpdaterPrefill:
                 # window attention use paged only
                 paged_kernel_lens = torch.minimum(
                     seq_lens,
-                    torch.tensor(self.sliding_window_size) + seq_lens - prefix_lens,
+                    torch.tensor(self.sliding_window_size) +
+                    seq_lens - prefix_lens,
                 )
             else:
                 # full attention
@@ -592,9 +612,10 @@ class FlashInferIndicesUpdaterPrefill:
         use_ragged,
     ):
         bs = len(req_pool_indices)
-        kv_indptr[1 : bs + 1] = torch.cumsum(paged_kernel_lens, dim=0)
+        kv_indptr[1: bs + 1] = torch.cumsum(paged_kernel_lens, dim=0)
         kv_indptr = kv_indptr[: bs + 1]
-        kv_indices = torch.empty(kv_indptr[-1], dtype=torch.int32, device=self.device)
+        kv_indices = torch.empty(
+            kv_indptr[-1], dtype=torch.int32, device=self.device)
         create_flashinfer_kv_indices_triton[(bs,)](
             self.req_to_token,
             req_pool_indices,
@@ -605,7 +626,7 @@ class FlashInferIndicesUpdaterPrefill:
             self.max_context_len,
         )
 
-        qo_indptr[1 : bs + 1] = torch.cumsum(seq_lens - prefix_lens, dim=0)
+        qo_indptr[1: bs + 1] = torch.cumsum(seq_lens - prefix_lens, dim=0)
         qo_indptr = qo_indptr[: bs + 1]
 
         # extend part

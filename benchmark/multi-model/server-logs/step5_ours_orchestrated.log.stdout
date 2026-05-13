@@ -1,0 +1,33 @@
+[transformers] `torch_dtype` is deprecated! Use `dtype` instead!
+[ModelConfig(model_name='model_1', model_path='Qwen/Qwen2.5-0.5B-Instruct', tokenizer_path='Qwen/Qwen2.5-0.5B-Instruct', tp_size=1, init_placements=[{'gpu_ids': [0], 'on': True, 'max_memory_pool_size': 4}]), ModelConfig(model_name='model_2', model_path='Qwen/Qwen2.5-0.5B-Instruct', tokenizer_path='Qwen/Qwen2.5-0.5B-Instruct', tp_size=1, init_placements=[{'gpu_ids': [0], 'on': True, 'max_memory_pool_size': 4}])]
+Initializing torch distributed...
+Torch distributed initialized.
+Loading 1 shared models to cpu...
+INFO 04-28 09:44:44 weight_utils.py:243] Using model weights format ['*.safetensors']
+INFO 04-28 09:44:45 weight_utils.py:288] No model.safetensors.index.json found in remote.
+Loading safetensors checkpoint shards:   0% Completed | 0/1 [00:00<?, ?it/s]
+Loading safetensors checkpoint shards: 100% Completed | 1/1 [00:00<00:00,  1.62it/s]
+Loading safetensors checkpoint shards: 100% Completed | 1/1 [00:00<00:00,  1.62it/s]
+
+Shared models loaded in 11.97 seconds.
+Preparing engine for model_1 (Qwen/Qwen2.5-0.5B-Instruct) on GPU [0] with initialize status on=True
+Preparing engine for model_2 (Qwen/Qwen2.5-0.5B-Instruct) on GPU [0] with initialize status on=True
+[transformers] `torch_dtype` is deprecated! Use `dtype` instead!
+[transformers] `torch_dtype` is deprecated! Use `dtype` instead!
+INFO 04-28 09:45:01 weight_utils.py:243] Using model weights format ['*.safetensors']
+INFO 04-28 09:45:02 weight_utils.py:288] No model.safetensors.index.json found in remote.
+Loading safetensors checkpoint shards:   0% Completed | 0/1 [00:00<?, ?it/s]
+INFO 04-28 09:45:03 weight_utils.py:243] Using model weights format ['*.safetensors']
+Loading safetensors checkpoint shards: 100% Completed | 1/1 [00:00<00:00,  1.65it/s]
+Loading safetensors checkpoint shards: 100% Completed | 1/1 [00:00<00:00,  1.65it/s]
+
+INFO 04-28 09:45:03 weight_utils.py:288] No model.safetensors.index.json found in remote.
+Loading safetensors checkpoint shards:   0% Completed | 0/1 [00:00<?, ?it/s]
+Loading safetensors checkpoint shards: 100% Completed | 1/1 [00:00<00:00,  1.60it/s]
+Loading safetensors checkpoint shards: 100% Completed | 1/1 [00:00<00:00,  1.60it/s]
+
+Controller process started.
+[2026-04-28 09:45:13] INFO:     Started server process [1866571]
+[2026-04-28 09:45:13] INFO:     Waiting for application startup.
+[2026-04-28 09:45:13] INFO:     Application startup complete.
+[2026-04-28 09:45:13] INFO:     Uvicorn running on http://127.0.0.1:30024 (Press CTRL+C to quit)

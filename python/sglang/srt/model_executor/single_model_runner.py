@@ -15,16 +15,16 @@ limitations under the License.
 
 """ModelRunner runs the forward passes of the models."""
 
-import gc
 import getpass
+import gc
 import io
 import json
 import logging
 import os
 import pickle
+import re
 import time
 from typing import Dict, List, Optional
-
 import torch
 import torch.nn as nn
 from tensordict import TensorDict
@@ -32,16 +32,16 @@ from torch.multiprocessing.queue import ForkingPickler
 from vllm.config import DeviceConfig, LoadConfig
 from vllm.config import ModelConfig as VllmModelConfig
 from vllm.model_executor.model_loader import get_model
-
 from sglang.srt.configs.model_config import ModelConfig
 from sglang.srt.mem_cache.memory_pool import MHATokenToKVPool, ReqToTokenPool
-from sglang.srt.model_executor.model_runner import BaseModelRunner, MemoryPoolInfo
-from sglang.srt.server_args import ServerArgs
 from sglang.srt.utils import (
     get_available_gpu_memory,
     is_generation_model,
     monkey_patch_vllm_dummy_weight_loader,
 )
+from sglang.srt.server_args import ServerArgs
+from sglang.srt.model_executor.model_runner import BaseModelRunner, MemoryPoolInfo
+
 
 logger = logging.getLogger(__name__)
 
@@ -67,7 +67,8 @@ class SingleModelRunner(BaseModelRunner):
     ):
         self.model_config = model_config
         self.model_name = model_config.name
-        self.ipc_name = f"ipc_{gpu_id}_{self.model_name}_{getpass.getuser()}"
+        sanitized_model_name = re.sub(r"[^A-Za-z0-9_.-]", "_", self.model_name)
+        self.ipc_name = f"ipc_{gpu_id}_{sanitized_model_name}_{getpass.getuser()}"
         super().__init__(
             mem_fraction_static=mem_fraction_static,
             gpu_id=gpu_id,
@@ -87,7 +88,7 @@ class SingleModelRunner(BaseModelRunner):
             model_key = (self.model_config.path, self.tp_size)
             if model_key in self.shared_cpu_models:
                 cpu_model_ref = self.shared_cpu_models[model_key][self.tp_rank]
-        
+
         # Load the model and tokenizer
         if self.tp_size > 1:
             self.load_model(self.server_args.model_path)
@@ -132,7 +133,8 @@ class SingleModelRunner(BaseModelRunner):
             model_path = self.model_config.path
             model_info = profiled_model_info.get(model_path, None)
             if model_info is None:
-                logger.warning(f"Model {model_path} not found in profiled model info.")
+                logger.warning(
+                    f"Model {model_path} not found in profiled model info.")
                 return 0
             else:
                 return model_info["model_size"]
@@ -142,7 +144,8 @@ class SingleModelRunner(BaseModelRunner):
         if max_num_reqs is None:
             max_num_reqs = min(
                 max(
-                    int(max_total_num_tokens / self.model_config.context_len * 512),
+                    int(max_total_num_tokens /
+                        self.model_config.context_len * 512),
                     2048,
                 ),
                 4096,
@@ -185,11 +188,11 @@ class SingleModelRunner(BaseModelRunner):
             self.model.get_attention_sliding_window_size()
             if hasattr(self.model, "get_attention_sliding_window_size")
             else None
-        )   
+        )
         self.is_generation = is_generation_model(
             self.model_config.hf_config.architectures, self.server_args.is_embedding
         )
-    
+
     def load_cpu_model(
         self, cpu_model_ref: Optional[List[nn.Module]] = None, pin_memory: bool = True
     ):
@@ -253,14 +256,15 @@ class SingleModelRunner(BaseModelRunner):
             )
         else:
             self.cpu_model_ref = cpu_model_ref
-        
+
         # Only pin memory if we have a CPU model (either from shared memory or loaded on CPU)
         # In TP mode without shared memory, model is loaded on CUDA and cannot be pinned
         should_pin_memory = pin_memory and (
             cpu_model_ref is not None or  # Have shared CPU model
-            (cpu_model_ref is None and self.tp_size == 1)  # Single GPU mode, loaded on CPU
+            # Single GPU mode, loaded on CPU
+            (cpu_model_ref is None and self.tp_size == 1)
         )
-        
+
         if should_pin_memory:
             self.state_dict_host = TensorDict(self.cpu_model_ref.state_dict())
             self.state_dict_host.pin_memory()
@@ -283,7 +287,8 @@ class SingleModelRunner(BaseModelRunner):
         restart_token_to_kv_pool = False
         if gpu_id is not None:
             if self.tp_size > 1:
-                raise ValueError("Activating a model with tp > 1 is not supported yet.")
+                raise ValueError(
+                    "Activating a model with tp > 1 is not supported yet.")
             original_gpu_id = self.gpu_id
             if original_gpu_id != gpu_id:
                 self.gpu_id = gpu_id
@@ -302,15 +307,18 @@ class SingleModelRunner(BaseModelRunner):
                 self.load_model(self.server_args.model_path)
             else:
                 self.load_gpu_model(use_model_service=self.use_model_service)
-            self.post_model_load_process(memory_pool_size, restart_token_to_kv_pool)
+            self.post_model_load_process(
+                memory_pool_size, restart_token_to_kv_pool)
             self.init_attention_backend()
 
     def post_model_load_process(
         self, memory_pool_size: float, restart_token_to_kv_pool: bool
     ):
         if memory_pool_size is not None:
-            self.max_total_num_tokens = self._get_max_total_num_tokens(memory_pool_size)
-            self.max_num_reqs = self._get_max_num_reqs(self.max_total_num_tokens)
+            self.max_total_num_tokens = self._get_max_total_num_tokens(
+                memory_pool_size)
+            self.max_num_reqs = self._get_max_num_reqs(
+                self.max_total_num_tokens)
             logger.info(
                 f"New memory pool size: {memory_pool_size:.2f} GB, "
                 f"max_total_num_tokens={self.max_total_num_tokens}, "
@@ -332,8 +340,10 @@ class SingleModelRunner(BaseModelRunner):
                 self.max_total_num_tokens = self._get_max_total_num_tokens(
                     new_memory_pool_size
                 )
-                self.max_num_reqs = self._get_max_num_reqs(self.max_total_num_tokens)
-                actual_memory = self.max_total_num_tokens * self.cell_size // (1 << 30)
+                self.max_num_reqs = self._get_max_num_reqs(
+                    self.max_total_num_tokens)
+                actual_memory = self.max_total_num_tokens * \
+                    self.cell_size // (1 << 30)
                 logger.info(
                     f"New memory pool size: {new_memory_pool_size:.2f} GB, "
                     f"max_total_num_tokens={self.max_total_num_tokens}, "
@@ -342,11 +352,14 @@ class SingleModelRunner(BaseModelRunner):
                 )
             else:
                 self.max_total_num_tokens = self.token_to_kv_pool.size
-                self.max_num_reqs = self._get_max_num_reqs(self.max_total_num_tokens)
-            success = self.token_to_kv_pool.update_size(self.max_total_num_tokens)
+                self.max_num_reqs = self._get_max_num_reqs(
+                    self.max_total_num_tokens)
+            success = self.token_to_kv_pool.update_size(
+                self.max_total_num_tokens)
             return success
         else:
-            raise ValueError("Only elastic memory is supported for resize_memory_pool")
+            raise ValueError(
+                "Only elastic memory is supported for resize_memory_pool")
 
     def load_gpu_model_async(
         self,
@@ -372,20 +385,24 @@ class SingleModelRunner(BaseModelRunner):
                 self._set_device()
             if not memory_pinned:
                 # Need to obtain self.state_dict_host from model_ref, no need for pin_memory
-                self.state_dict_host = TensorDict(self.cpu_model_ref.state_dict())
+                self.state_dict_host = TensorDict(
+                    self.cpu_model_ref.state_dict())
 
             buf = io.BytesIO()
-            ForkingPickler(buf, pickle.HIGHEST_PROTOCOL).dump(self.cpu_model_ref)
+            ForkingPickler(buf, pickle.HIGHEST_PROTOCOL).dump(
+                self.cpu_model_ref)
             self.model = pickle.loads(buf.getvalue())
 
             if post_load_process:
-                self.post_model_load_process(memory_pool_size, restart_token_to_kv_pool)
+                self.post_model_load_process(
+                    memory_pool_size, restart_token_to_kv_pool)
                 self.init_attention_backend()
 
         def async_transfer_and_load():
             if self.tp_rank > 0:
                 self._set_device()
-            transfer_stream = torch.cuda.Stream(device=f"{self.device}:{self.gpu_id}")
+            transfer_stream = torch.cuda.Stream(
+                device=f"{self.device}:{self.gpu_id}")
             with torch.cuda.stream(transfer_stream):
                 if not memory_pinned:
                     while (
@@ -422,7 +439,8 @@ class SingleModelRunner(BaseModelRunner):
 
         def async_init_others():
             if post_load_process:
-                self.post_model_load_process(memory_pool_size, restart_token_to_kv_pool)
+                self.post_model_load_process(
+                    memory_pool_size, restart_token_to_kv_pool)
                 self.init_attention_backend()
 
         import threading
@@ -468,7 +486,8 @@ class SingleModelRunner(BaseModelRunner):
             f"req_to_token_pool memory={req_to_token_pool_memory:.2f} GB"
         )
         if not isinstance(self.token_to_kv_pool, MHATokenToKVPool):
-            raise ValueError("Only MHATokenToKVPool is supported for elastic memory")
+            raise ValueError(
+                "Only MHATokenToKVPool is supported for elastic memory")
 
         kvcached_update_tic = time.time()
         if restart_token_to_kv_pool:
@@ -503,7 +522,8 @@ class SingleModelRunner(BaseModelRunner):
             f"available size: {available_size}, memory pool size: {memory_pool_size:.2f} GB"
         )
         memory_allocated_end = torch.cuda.memory_allocated()
-        memory_pool_memory = (memory_allocated_end - memory_allocated_start) / (1 << 30)
+        memory_pool_memory = (memory_allocated_end -
+                              memory_allocated_start) / (1 << 30)
         token_to_kv_pool_memory = (
             memory_allocated_end - mem_allocated_after_req_to_token_pool
         ) / (1 << 30)
@@ -547,7 +567,8 @@ class SingleModelRunner(BaseModelRunner):
         max_memory_pool_size = self.server_args.max_memory_pool_size
         if max_memory_pool_size is None:
             max_memory_pool_size = self.max_mem_usage - self.model_gpu_mem_usage
-        max_memory_pool_size -= global_config.flashinfer_workspace_size // (1 << 30)
+        max_memory_pool_size -= global_config.flashinfer_workspace_size // (
+            1 << 30)
 
         return max_memory_pool_size
 
@@ -579,7 +600,8 @@ class SingleModelRunner(BaseModelRunner):
             )
         else:
             buf = io.BytesIO()
-            ForkingPickler(buf, pickle.HIGHEST_PROTOCOL).dump(self.cpu_model_ref)
+            ForkingPickler(buf, pickle.HIGHEST_PROTOCOL).dump(
+                self.cpu_model_ref)
 
             self.model = pickle.loads(buf.getvalue())
 

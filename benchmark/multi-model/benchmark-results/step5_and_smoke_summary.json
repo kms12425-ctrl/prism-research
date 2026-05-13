@@ -1,0 +1,69 @@
+{
+  "generated_at": "2026-04-28T11:00:31.585182+00:00",
+  "artifacts": {
+    "smoke_1model": "multi-model/benchmark-results/synthetic_num_models-1_req_rate-1_duration-60_alpha-2.1_cv-1_slo-10_key_metrics.tsv",
+    "smoke_2model": "multi-model/benchmark-results/synthetic_num_models-2_req_rate-1_duration-60_alpha-2.1_cv-1_slo-10_key_metrics.tsv",
+    "static_single_request": "multi-model/benchmark-results/step5_static_single_request.json",
+    "ours_single_request": "multi-model/benchmark-results/step5_ours_single_request.json",
+    "static_server_config": "benchmark/multi-model/model_configs/1_gpu_2_model_smoke_lowmem.json"
+  },
+  "smoke_baseline": [
+    {
+      "name": "baseline_1model",
+      "exp_name": "a6000_smoke_1model_baseline",
+      "mean_e2e_ms": 4020.86736257188,
+      "request_tput": 1.0411492416595884,
+      "mean_ttft_ms": 17.66336758931478,
+      "mean_tpot_ms": 9.956330608390006,
+      "mean_itl_ms": 9.977886397062704,
+      "slo_attainment": 0.0
+    },
+    {
+      "name": "baseline_2model",
+      "exp_name": "a6000_smoke_2model_baseline",
+      "mean_e2e_ms": 3696.217283016692,
+      "request_tput": 1.0428633715034403,
+      "mean_ttft_ms": 22.100794315338135,
+      "mean_tpot_ms": 9.16669098226158,
+      "mean_itl_ms": 9.150214125394692,
+      "slo_attainment": 0.0
+    }
+  ],
+  "single_request": [
+    {
+      "name": "static_single_request",
+      "mode": "static",
+      "success": true,
+      "latency_ms": 392.0521750114858,
+      "latency_server_ms": 386.60168647766113,
+      "ttft_ms": 76.20382308959961,
+      "tpot_ms": 9.699933230876923,
+      "wait_time_ms": 3.197908401489258,
+      "request_throughput": 2.5506809137602753,
+      "output_len": 32,
+      "error_summary": "",
+      "error": ""
+    },
+    {
+      "name": "ours_single_request",
+      "mode": "ours",
+      "success": true,
+      "latency_ms": 304.80429576709867,
+      "latency_server_ms": 298.7821102142334,
+      "ttft_ms": 13.268709182739258,
+      "tpot_ms": 9.21010971069336,
+      "wait_time_ms": 2.493619918823242,
+      "request_throughput": 3.2807936564125764,
+      "output_len": 32,
+      "error_summary": "",
+      "error": ""
+    }
+  ],
+  "highlights": {
+    "single_request_outcome": "static and ours both succeeded, so the comparison is latency-vs-latency",
+    "static_single_request_latency_ms": 392.0521750114858,
+    "static_single_request_ttft_ms": 76.20382308959961,
+    "two_model_smoke_request_tput": 1.0428633715034403,
+    "two_model_smoke_mean_tpot_ms": 9.16669098226158
+  }
+}
