@@ -15,15 +15,15 @@ limitations under the License.
 
 """The arguments of the server."""
 
-import argparse
 import dataclasses
+import argparse
 import logging
 import random
 import tempfile
 from dataclasses import field
+from sglang.srt.utils import is_flashinfer_available, is_ipv6, is_port_available
 from typing import Any, Dict, List, Optional
 
-from sglang.srt.utils import is_flashinfer_available, is_ipv6, is_port_available
 
 logger = logging.getLogger(__name__)
 
@@ -229,7 +229,8 @@ class ServerArgs:
             self.trust_remote_code = False
 
         if self.model_path and "gemma-2" in self.model_path.lower():
-            logger.info("When using sliding window in gemma-2, turn on flashinfer.")
+            logger.info(
+                "When using sliding window in gemma-2, turn on flashinfer.")
             self.attention_backend = "flashinfer"
 
         # Validate worker pool configuration
@@ -353,7 +354,8 @@ class ServerArgs:
             "--dtype",
             type=str,
             default=ServerArgs.dtype,
-            choices=["auto", "half", "float16", "bfloat16", "float", "float32"],
+            choices=["auto", "half", "float16",
+                     "bfloat16", "float", "float32"],
             help="Data type for model weights and activations.\n\n"
             '* "auto" will use FP16 precision for FP32 and FP16 models, and '
             "BF16 precision for BF16 models.\n"
@@ -571,7 +573,8 @@ class ServerArgs:
         # Multi-node distributed serving args
         parser.add_argument(
             "--dist-init-addr",
-            "--nccl-init-addr",  # For backward compatbility. This will be removed in the future.
+            # For backward compatbility. This will be removed in the future.
+            "--nccl-init-addr",
             type=str,
             help="The host address for initializing distributed backend (e.g., `192.168.0.2:25000`).",
         )
@@ -853,7 +856,12 @@ class ServerArgs:
         args.tp_size = args.tensor_parallel_size
         args.dp_size = args.data_parallel_size
         attrs = [attr.name for attr in dataclasses.fields(cls)]
-        return cls(**{attr: getattr(args, attr) for attr in attrs})
+        return cls(
+            **{
+                attr: getattr(args, attr, getattr(cls, attr))
+                for attr in attrs
+            }
+        )
 
     def url(self):
         if is_ipv6(self.host):
@@ -928,9 +936,12 @@ class PortArgs:
             port += 1
 
         return PortArgs(
-            request_handler_ipc_name=tempfile.NamedTemporaryFile(delete=False).name,
-            scheduler_input_ipc_name=tempfile.NamedTemporaryFile(delete=False).name,
-            detokenizer_ipc_name=tempfile.NamedTemporaryFile(delete=False).name,
+            request_handler_ipc_name=tempfile.NamedTemporaryFile(
+                delete=False).name,
+            scheduler_input_ipc_name=tempfile.NamedTemporaryFile(
+                delete=False).name,
+            detokenizer_ipc_name=tempfile.NamedTemporaryFile(
+                delete=False).name,
             nccl_port=port,
         )
 
@@ -948,8 +959,10 @@ class PortArgs:
 
         return PortArgs(
             request_handler_ipc_name=request_handler_ipc_name,
-            scheduler_input_ipc_name=tempfile.NamedTemporaryFile(delete=False).name,
-            detokenizer_ipc_name=tempfile.NamedTemporaryFile(delete=False).name,
+            scheduler_input_ipc_name=tempfile.NamedTemporaryFile(
+                delete=False).name,
+            detokenizer_ipc_name=tempfile.NamedTemporaryFile(
+                delete=False).name,
             controller_ipc_name=controller_ipc_name,
             nccl_port=port,
         )

@@ -1,0 +1,32 @@
+[
+    {
+        "model_name": "model_1",
+        "model_path": "Qwen/Qwen2.5-3B-Instruct",
+        "tokenizer_path": "Qwen/Qwen2.5-3B-Instruct",
+        "tp_size": 1,
+        "init_placements": [
+            {
+                "gpu_ids": [
+                    0
+                ],
+                "on": true,
+                "max_memory_pool_size": 20
+            }
+        ]
+    },
+    {
+        "model_name": "model_2",
+        "model_path": "Qwen/Qwen2.5-3B-Instruct",
+        "tokenizer_path": "Qwen/Qwen2.5-3B-Instruct",
+        "tp_size": 1,
+        "init_placements": [
+            {
+                "gpu_ids": [
+                    0
+                ],
+                "on": true,
+                "max_memory_pool_size": 20
+            }
+        ]
+    }
+]

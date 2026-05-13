@@ -29,13 +29,8 @@ import threading
 import time
 from http import HTTPStatus
 from typing import AsyncIterator, Dict, List, Optional, Union
-
 import orjson
 import torch
-
-# Fix a bug of Python threading
-setattr(threading, "_register_atexit", lambda *args, **kwargs: None)
-
 import aiohttp
 import requests
 import uvicorn
@@ -44,7 +39,6 @@ from fastapi import FastAPI, File, Form, Request, UploadFile
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import ORJSONResponse, Response, StreamingResponse
 from uvicorn.config import LOGGING_CONFIG
-
 from sglang.lang.backend.runtime_endpoint import RuntimeEndpoint
 from sglang.srt.hf_transformers_utils import get_tokenizer
 from sglang.srt.managers.data_parallel_controller import (
@@ -73,18 +67,13 @@ from sglang.srt.openai_api.adapter import (
     v1_retrieve_file_content,
 )
 from sglang.srt.openai_api.protocol import ModelCard, ModelList
-from sglang.srt.server_args import PortArgs, ServerArgs
-from sglang.srt.utils import (
-    add_api_key_middleware,
-    assert_pkg_version,
-    configure_logger,
-    is_port_available,
-    kill_child_process,
-    maybe_set_triton_cache_manager,
-    prepare_model_and_tokenizer,
-    set_ulimit,
-)
 from sglang.utils import get_exception_traceback
+from sglang.srt.server_args import PortArgs, ServerArgs
+
+
+# Fix a bug of Python threading
+setattr(threading, "_register_atexit", lambda *args, **kwargs: None)
+
 
 logger = logging.getLogger(__name__)
 
@@ -110,6 +99,8 @@ def launch_llm_engine(
     server_args.model_path, server_args.tokenizer_path = prepare_model_and_tokenizer(
         server_args.model_path, server_args.tokenizer_path
     )
+    model_names_to_model_paths = {
+        server_args.model_name: server_args.model_path}
 
     if server_args.dp_size == 1:
         # Launch tensor parallel scheduler processes
@@ -153,6 +144,7 @@ def launch_llm_engine(
         args=(
             server_args,
             port_args,
+            model_names_to_model_paths,
         ),
     )
     detoken_proc.start()
@@ -182,7 +174,8 @@ def launch_engine(
 
     # Send a warmup request
     t = threading.Thread(
-        target=_wait_and_warmup, args=(server_args, pipe_finish_writer, os.getpid())
+        target=_wait_and_warmup, args=(
+            server_args, pipe_finish_writer, os.getpid())
     )
     try:
         t.start()
@@ -527,7 +520,8 @@ class Engine:
                     if chunk.startswith(STREAM_END_SYMBOL):
                         break
                     else:
-                        data = json.loads(chunk[len(STREAM_CHUNK_START_SYMBOL) :])
+                        data = json.loads(
+                            chunk[len(STREAM_CHUNK_START_SYMBOL):])
                         data["text"] = data["text"][offset:]
                         offset += len(data["text"])
                         yield data
@@ -573,7 +567,8 @@ class Engine:
                     if chunk.startswith(STREAM_END_SYMBOL):
                         break
                     else:
-                        data = json.loads(chunk[len(STREAM_CHUNK_START_SYMBOL) :])
+                        data = json.loads(
+                            chunk[len(STREAM_CHUNK_START_SYMBOL):])
                         data["text"] = data["text"][offset:]
                         offset += len(data["text"])
                         yield data

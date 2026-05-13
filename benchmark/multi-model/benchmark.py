@@ -31,7 +31,8 @@ class RequestFuncOutput:
     latency: float = 0.0
     latency_server: float = 0.0
     ttft: float = 0.0  # Time to first token
-    itl: List[float] = field(default_factory=list)  # List of inter-token latencies
+    # List of inter-token latencies
+    itl: List[float] = field(default_factory=list)
     tpot: float = 0.0
     wait_time: float = 0.0
 
@@ -112,7 +113,8 @@ async def send_generate_request(
 
                             # Decoding phase
                             else:
-                                output.itl.append(timestamp - most_recent_timestamp)
+                                output.itl.append(
+                                    timestamp - most_recent_timestamp)
 
                             most_recent_timestamp = timestamp
                         if data["meta_info"]:
@@ -169,7 +171,8 @@ async def send_generate_request(
             else:
                 exc_info = sys.exc_info()
                 output.error = "".join(traceback.format_exception(*exc_info))
-            print(f"Error in sending generate request {req.req_id} model {req.model}, error: {output.error}")
+            print(
+                f"Error in sending generate request {req.req_id} model {req.model}, error: {output.error}")
 
     if pbar:
         pbar.update(1)
@@ -292,7 +295,8 @@ async def run_swap_loop(
             if model_1 is not None:
                 results.append(
                     asyncio.create_task(
-                        send_deactivate_request(model_1, server, preempt=preempt)
+                        send_deactivate_request(
+                            model_1, server, preempt=preempt)
                     )
                 )
             if model_2 is not None:
@@ -334,7 +338,8 @@ async def run_activate_deactivate_loop(
                 print(f"Activating model {model_name}")
                 if enable_elastic_memory:
                     for model_to_resize in models_to_resize:
-                        print(f"Resizing memory pool for model {model_to_resize}")
+                        print(
+                            f"Resizing memory pool for model {model_to_resize}")
                         results.append(
                             asyncio.create_task(
                                 send_resize_mem_pool_request(
@@ -355,15 +360,18 @@ async def run_activate_deactivate_loop(
                 except Exception as e:
                     print(f"Error in activate deactivate loop: {e}")
                 print(f"Deactivating model {model_name}")
-                print(f"finished tasks are {[task.get_name() for task in tasks]}")
+                print(
+                    f"finished tasks are {[task.get_name() for task in tasks]}")
                 results.append(
                     asyncio.create_task(
-                        send_deactivate_request(model_name, server, preempt=preempt)
+                        send_deactivate_request(
+                            model_name, server, preempt=preempt)
                     )
                 )
                 if enable_elastic_memory:
                     for model_to_resize in models_to_resize:
-                        print(f"Resizing memory pool for model {model_to_resize}")
+                        print(
+                            f"Resizing memory pool for model {model_to_resize}")
                         results.append(
                             asyncio.create_task(
                                 send_resize_mem_pool_request(
@@ -485,7 +493,7 @@ async def run_generation_sequential_swapping(
     num_swaps = 0
     current_model = None
     pending_tasks_by_model = {}
-    
+
     task_to_index: Dict[asyncio.Task, int] = {}
     results = [None] * len(input_requests)
 
@@ -498,7 +506,8 @@ async def run_generation_sequential_swapping(
 
     start_time = time.perf_counter()
     for i, req in enumerate(input_requests):
-        sleep_time = max(0, start_time + req.arrival_time - time.perf_counter())
+        sleep_time = max(0, start_time + req.arrival_time -
+                         time.perf_counter())
         await asyncio.sleep(sleep_time)
 
         if req.model != current_model:
@@ -690,7 +699,8 @@ async def run_generation_basic(
     start = time.perf_counter()
     for i, req in enumerate(input_requests):
         sleep_time = max(0, start + req.arrival_time - time.perf_counter())
-        print(f"Request {req.req_id} arrives at {time.perf_counter()}, sleeping for {sleep_time} seconds")
+        print(
+            f"Request {req.req_id} arrives at {time.perf_counter()}, sleeping for {sleep_time} seconds")
         await asyncio.sleep(sleep_time)
         task = asyncio.create_task(
             send_generate_request(server, req, pbar=pbar),
@@ -722,33 +732,33 @@ async def run_tp_mode(
 ):
     """Run TP benchmark mode"""
     server = args.base_url or f"http://{args.host}:{args.port}"
-    
+
     print(f"Starting TP benchmark: {args.exp_name}")
     print(f"Generated {len(requests)} requests")
-    
-    # Run benchmark  
+
+    # Run benchmark
     start_time = time.perf_counter()
     outputs = await run_generation_basic(
-        requests, server, 
+        requests, server,
         pbar=None if args.disable_tqdm else tqdm(total=len(requests)),
         debug=args.debug
     )
     duration = time.perf_counter() - start_time
-    
+
     # Calculate basic metrics (TP mode version)
     successful = [o for o in outputs if o.success]
-    
+
     if not successful:
         print("No successful requests!")
         return
-        
+
     total_input = sum(r.prompt_len for r in requests)
     total_output = sum(o.output_len for o in successful)
-    
+
     ttfts = [o.ttft for o in successful if o.ttft > 0]
     tpots = [o.tpot for o in successful if o.tpot > 0]
     latencies = [o.latency for o in successful]
-    
+
     # Print results
     print("=" * 60)
     print("BENCHMARK RESULTS")
@@ -758,25 +768,25 @@ async def run_tp_mode(
     print(f"Request throughput: {len(successful) / duration:.2f} req/s")
     print(f"Input throughput: {total_input / duration:.2f} tokens/s")
     print(f"Output throughput: {total_output / duration:.2f} tokens/s")
-    
+
     if ttfts:
         print(f"Mean TTFT: {np.mean(ttfts) * 1000:.1f} ms")
         print(f"P99 TTFT: {np.percentile(ttfts, 99) * 1000:.1f} ms")
-    
+
     if tpots:
         print(f"Mean TPOT: {np.mean(tpots) * 1000:.1f} ms")
         print(f"P99 TPOT: {np.percentile(tpots, 99) * 1000:.1f} ms")
-        
+
     if latencies:
         print(f"Mean Latency: {np.mean(latencies) * 1000:.1f} ms")
         print(f"P99 Latency: {np.percentile(latencies, 99) * 1000:.1f} ms")
-    
+
     print("=" * 60)
-    
+
     # Save results (TP mode format)
     os.makedirs(args.results_path, exist_ok=True)
     os.makedirs(args.request_path, exist_ok=True)
-    
+
     # Save metrics
     if trace_config.e2e_benchmark:
         metrics_file = (
@@ -790,7 +800,7 @@ async def run_tp_mode(
     else:
         metrics_file = f"{args.exp_name}_{args.num_gpus}gpu.json"
         requests_file = f"{args.exp_name}_{args.num_gpus}gpu_output_requests.json"
-    
+
     # Save detailed metrics
     with open(os.path.join(args.results_path, metrics_file), "w") as f:
         result = {
@@ -814,7 +824,7 @@ async def run_tp_mode(
                 "p99_tpot_ms": np.percentile(tpots, 99) * 1000,
             })
         json.dump(result, f, indent=2)
-    
+
     # Save request outputs
     with open(os.path.join(args.request_path, requests_file), "w") as f:
         output_data = []
@@ -829,7 +839,7 @@ async def run_tp_mode(
                 "error": output.error,
             })
         json.dump(output_data, f, indent=2)
-    
+
     print(f"Results saved to {args.results_path}")
     print(f"Requests saved to {args.request_path}")
 
@@ -875,8 +885,8 @@ async def benchmark(
     server: str,
     trace_config: TraceConfig,
 ) -> None:
-
-    # test_run(test_request=input_requests[0], server=server)
+    await wait_for_server_ready(server)
+    await test_run(test_request=input_requests[0], server=server)
 
     pbar = None if args.disable_tqdm else tqdm(total=len(input_requests))
 
@@ -1067,10 +1077,13 @@ def calculate_metrics(
                 if outputs[i].slo_ttft is not None and outputs[i].slo_tpot is not None:
                     print(f"model: {outputs[i].model}, arrival_time: {outputs[i].arrival_time}, outputs[i].ttft: {outputs[i].ttft}, outputs[i].slo_ttft: {outputs[i].slo_ttft}, outputs[i].tpot: {outputs[i].tpot}, outputs[i].slo_tpot: {outputs[i].slo_tpot}")
                     # change from latency to ttft slo
-                    attainment_ttft.append(1 if outputs[i].ttft < outputs[i].slo_ttft else 0)
-                    attainment_tpot.append(1 if outputs[i].tpot < outputs[i].slo_tpot else 0)
+                    attainment_ttft.append(
+                        1 if outputs[i].ttft < outputs[i].slo_ttft else 0)
+                    attainment_tpot.append(
+                        1 if outputs[i].tpot < outputs[i].slo_tpot else 0)
                 else:
-                    attainment_slo.append(1 if outputs[i].latency < outputs[i].slo else 0)
+                    attainment_slo.append(
+                        1 if outputs[i].latency < outputs[i].slo else 0)
             else:
                 attainment_ttft.append(1)
                 attainment_tpot.append(1)
@@ -1124,14 +1137,18 @@ def calculate_metrics(
         p95_e2e_latency_ms=np.percentile(e2e_latencies, 95) * 1000,
         mean_e2e_latency_server_ms=np.mean(e2e_latencies_server) * 1000,
         median_e2e_latency_server_ms=np.median(e2e_latencies_server) * 1000,
-        p99_e2e_latency_server_ms=np.percentile(e2e_latencies_server, 99) * 1000,
-        p95_e2e_latency_server_ms=np.percentile(e2e_latencies_server, 95) * 1000,
+        p99_e2e_latency_server_ms=np.percentile(
+            e2e_latencies_server, 99) * 1000,
+        p95_e2e_latency_server_ms=np.percentile(
+            e2e_latencies_server, 95) * 1000,
         mean_wait_time_ms=np.mean(wait_times) * 1000,
         median_wait_time_ms=np.median(wait_times) * 1000,
         p99_wait_time_ms=np.percentile(wait_times, 99) * 1000,
         p95_wait_time_ms=np.percentile(wait_times, 95) * 1000,
-        average_attainment_ttft=np.mean(attainment_ttft) if len(attainment_ttft) > 0 else 0,
-        average_attainment_tpot=np.mean(attainment_tpot) if len(attainment_tpot) > 0 else 0,
+        average_attainment_ttft=np.mean(
+            attainment_ttft) if len(attainment_ttft) > 0 else 0,
+        average_attainment_tpot=np.mean(
+            attainment_tpot) if len(attainment_tpot) > 0 else 0,
     )
 
     return metrics
@@ -1143,7 +1160,7 @@ def get_benchmark_metrics(
     all_model_metrics = calculate_metrics(input_requests, outputs, dur_s)
 
     if all_model_metrics is None:
-        print(f"Error running benchmark for request rate: {trace_config.req_rate}")
+        print("Error running benchmark: all requests failed before metrics collection.")
         print("-" * 30)
         return None, None
 
@@ -1210,12 +1227,16 @@ def print_metrics(
         num_activations, num_deactivations = num_swaps
         print("{:<40} {:<10}".format("Num activations:", num_activations))
         print("{:<40} {:<10}".format("Num deactivations:", num_deactivations))
-    print("{:<40} {:<10.2f}".format("Average Attainment:", metrics.average_attainment))
+    print("{:<40} {:<10.2f}".format(
+        "Average Attainment:", metrics.average_attainment))
     print("{:<40} {:<10}".format("Successful requests:", metrics.completed))
     print("{:<40} {:<10}".format("Aborted requests:", metrics.aborted))
-    print("{:<40} {:<10.2f}".format("Benchmark duration (s):", benchmark_duration))
-    print("{:<40} {:<10.2f}".format("Average input len:", metrics.average_input_len))
-    print("{:<40} {:<10.2f}".format("Average output len:", metrics.average_output_len))
+    print("{:<40} {:<10.2f}".format(
+        "Benchmark duration (s):", benchmark_duration))
+    print("{:<40} {:<10.2f}".format(
+        "Average input len:", metrics.average_input_len))
+    print("{:<40} {:<10.2f}".format(
+        "Average output len:", metrics.average_output_len))
     # print("{:<40} {:<10}".format("Total input tokens:", metrics.total_input))
     # print("{:<40} {:<10}".format("Total generated tokens:", metrics.total_output))
     print("{s:{c}^{n}}".format(s="Throughput", n=50, c="-"))
@@ -1242,7 +1263,8 @@ def print_metrics(
     )
     print("{s:{c}^{n}}".format(s="E2E Latency", n=50, c="-"))
     print(
-        "{:<40} {:<10.2f}".format("Mean E2E Latency (ms):", metrics.mean_e2e_latency_ms)
+        "{:<40} {:<10.2f}".format(
+            "Mean E2E Latency (ms):", metrics.mean_e2e_latency_ms)
     )
     print(
         "{:<40} {:<10.2f}".format(
@@ -1250,10 +1272,12 @@ def print_metrics(
         )
     )
     print(
-        "{:<40} {:<10.2f}".format("P99 E2E Latency (ms):", metrics.p99_e2e_latency_ms)
+        "{:<40} {:<10.2f}".format(
+            "P99 E2E Latency (ms):", metrics.p99_e2e_latency_ms)
     )
     print(
-        "{:<40} {:<10.2f}".format("P95 E2E Latency (ms):", metrics.p95_e2e_latency_ms)
+        "{:<40} {:<10.2f}".format(
+            "P95 E2E Latency (ms):", metrics.p95_e2e_latency_ms)
     )
     print(
         "{:<40} {:<10.2f}".format(
@@ -1267,14 +1291,17 @@ def print_metrics(
     )
     print("{s:{c}^{n}}".format(s="Time to First Token", n=50, c="-"))
     print("{:<40} {:<10.2f}".format("Mean TTFT (ms):", metrics.mean_ttft_ms))
-    print("{:<40} {:<10.2f}".format("Median TTFT (ms):", metrics.median_ttft_ms))
+    print("{:<40} {:<10.2f}".format(
+        "Median TTFT (ms):", metrics.median_ttft_ms))
     print("{:<40} {:<10.2f}".format("P99 TTFT (ms):", metrics.p99_ttft_ms))
     print("{:<40} {:<10.2f}".format("P95 TTFT (ms):", metrics.p95_ttft_ms))
     print(
-        "{s:{c}^{n}}".format(s="Time per Output Token (excl. 1st token)", n=50, c="-")
+        "{s:{c}^{n}}".format(
+            s="Time per Output Token (excl. 1st token)", n=50, c="-")
     )
     print("{:<40} {:<10.2f}".format("Mean TPOT (ms):", metrics.mean_tpot_ms))
-    print("{:<40} {:<10.2f}".format("Median TPOT (ms):", metrics.median_tpot_ms))
+    print("{:<40} {:<10.2f}".format(
+        "Median TPOT (ms):", metrics.median_tpot_ms))
     print("{:<40} {:<10.2f}".format("P99 TPOT (ms):", metrics.p99_tpot_ms))
     print("{:<40} {:<10.2f}".format("P95 TPOT (ms):", metrics.p95_tpot_ms))
     print("{s:{c}^{n}}".format(s="Inter-token Latency", n=50, c="-"))
@@ -1283,12 +1310,16 @@ def print_metrics(
     print("{:<40} {:<10.2f}".format("P99 ITL (ms):", metrics.p99_itl_ms))
     print("{:<40} {:<10.2f}".format("P95 ITL (ms):", metrics.p95_itl_ms))
     print("{s:{c}^{n}}".format(s="Wait Time", n=50, c="-"))
-    print("{:<40} {:<10.2f}".format("Mean Wait Time (ms):", metrics.mean_wait_time_ms))
+    print("{:<40} {:<10.2f}".format(
+        "Mean Wait Time (ms):", metrics.mean_wait_time_ms))
     print(
-        "{:<40} {:<10.2f}".format("Median Wait Time (ms):", metrics.median_wait_time_ms)
+        "{:<40} {:<10.2f}".format(
+            "Median Wait Time (ms):", metrics.median_wait_time_ms)
     )
-    print("{:<40} {:<10.2f}".format("P99 Wait Time (ms):", metrics.p99_wait_time_ms))
-    print("{:<40} {:<10.2f}".format("P95 Wait Time (ms):", metrics.p95_wait_time_ms))
+    print("{:<40} {:<10.2f}".format(
+        "P99 Wait Time (ms):", metrics.p99_wait_time_ms))
+    print("{:<40} {:<10.2f}".format(
+        "P95 Wait Time (ms):", metrics.p95_wait_time_ms))
 
     num_models = len(model_to_metrics)
     if num_models > 1:  # print per model metrics
@@ -1296,9 +1327,11 @@ def print_metrics(
         for model, model_metrics in model_to_metrics.items():
             print("{s:{c}^{n}}".format(s=f"Model: {model}", n=50, c="*"))
             print(
-                "{:<40} {:<10}".format("Successful requests:", model_metrics.completed)
+                "{:<40} {:<10}".format(
+                    "Successful requests:", model_metrics.completed)
             )
-            print("{:<40} {:<10}".format("Aborted requests:", model_metrics.aborted))
+            print("{:<40} {:<10}".format(
+                "Aborted requests:", model_metrics.aborted))
             print(
                 "{:<40} {:<10.2f}".format(
                     "Average Attainment:", model_metrics.average_attainment
@@ -1358,7 +1391,8 @@ def print_metrics(
             )
             # ttft
             print(
-                "{:<40} {:<10.2f}".format("Mean TTFT (ms):", model_metrics.mean_ttft_ms)
+                "{:<40} {:<10.2f}".format(
+                    "Mean TTFT (ms):", model_metrics.mean_ttft_ms)
             )
             print(
                 "{:<40} {:<10.2f}".format(
@@ -1366,14 +1400,17 @@ def print_metrics(
                 )
             )
             print(
-                "{:<40} {:<10.2f}".format("P99 TTFT (ms):", model_metrics.p99_ttft_ms)
+                "{:<40} {:<10.2f}".format(
+                    "P99 TTFT (ms):", model_metrics.p99_ttft_ms)
             )
             print(
-                "{:<40} {:<10.2f}".format("P95 TTFT (ms):", model_metrics.p95_ttft_ms)
+                "{:<40} {:<10.2f}".format(
+                    "P95 TTFT (ms):", model_metrics.p95_ttft_ms)
             )
             # tpot
             print(
-                "{:<40} {:<10.2f}".format("Mean TPOT (ms):", model_metrics.mean_tpot_ms)
+                "{:<40} {:<10.2f}".format(
+                    "Mean TPOT (ms):", model_metrics.mean_tpot_ms)
             )
             print(
                 "{:<40} {:<10.2f}".format(
@@ -1381,22 +1418,27 @@ def print_metrics(
                 )
             )
             print(
-                "{:<40} {:<10.2f}".format("P99 TPOT (ms):", model_metrics.p99_tpot_ms)
+                "{:<40} {:<10.2f}".format(
+                    "P99 TPOT (ms):", model_metrics.p99_tpot_ms)
             )
             print(
-                "{:<40} {:<10.2f}".format("P95 TPOT (ms):", model_metrics.p95_tpot_ms)
+                "{:<40} {:<10.2f}".format(
+                    "P95 TPOT (ms):", model_metrics.p95_tpot_ms)
             )
             # itl
             print(
-                "{:<40} {:<10.2f}".format("Mean ITL (ms):", model_metrics.mean_itl_ms)
+                "{:<40} {:<10.2f}".format(
+                    "Mean ITL (ms):", model_metrics.mean_itl_ms)
             )
             print(
                 "{:<40} {:<10.2f}".format(
                     "Median ITL (ms):", model_metrics.median_itl_ms
                 )
             )
-            print("{:<40} {:<10.2f}".format("P99 ITL (ms):", model_metrics.p99_itl_ms))
-            print("{:<40} {:<10.2f}".format("P95 ITL (ms):", model_metrics.p95_itl_ms))
+            print("{:<40} {:<10.2f}".format(
+                "P99 ITL (ms):", model_metrics.p99_itl_ms))
+            print("{:<40} {:<10.2f}".format(
+                "P95 ITL (ms):", model_metrics.p95_itl_ms))
             # wait time
             print(
                 "{:<40} {:<10.2f}".format(
@@ -1545,7 +1587,8 @@ def save_results(
         print(f"All results saved to {output_all}")
 
         output_key = os.path.join(
-            save_path, get_key_metric_file_name(trace_config, benchmark_mode, num_gpus)
+            save_path, get_key_metric_file_name(
+                trace_config, benchmark_mode, num_gpus)
         )
         # Make sure parent directory of output_key exists
         os.makedirs(os.path.dirname(output_key), exist_ok=True)
@@ -1616,7 +1659,8 @@ def save_results(
             writer.writerow(key_metrics)
         print(f"Key metrics saved to {output_key}")
     else:
-        print(f"Error running benchmark for request rate: {trace_config.req_rate}")
+        print(
+            f"Error running benchmark for request rate: {trace_config.req_rate}")
         print("-" * 30)
 
 
@@ -1674,6 +1718,30 @@ async def test_run(test_request: Request, server: str):
         print("Initial test run completed. Starting main benchmark run...")
 
 
+async def wait_for_server_ready(
+    server: str,
+    timeout_s: float = 600,
+    interval_s: float = 2,
+):
+    health_url = server + "/health"
+    deadline = time.perf_counter() + timeout_s
+
+    while time.perf_counter() < deadline:
+        try:
+            timeout = aiohttp.ClientTimeout(total=5)
+            async with aiohttp.ClientSession(timeout=timeout) as session:
+                async with session.get(health_url) as response:
+                    if response.status == 200:
+                        print(f"Server health check succeeded: {health_url}")
+                        return
+        except Exception:
+            pass
+
+        await asyncio.sleep(interval_s)
+
+    raise TimeoutError(f"Timed out waiting for server readiness: {health_url}")
+
+
 async def benchmark_with_timeout(
     args, input_requests, server, trace_config, timeout=60 * 60
 ):
@@ -1728,7 +1796,8 @@ def set_ulimit(target_soft_limit=65535):
 
     if current_soft < target_soft_limit:
         try:
-            resource.setrlimit(resource_type, (target_soft_limit, current_hard))
+            resource.setrlimit(
+                resource_type, (target_soft_limit, current_hard))
         except ValueError as e:
             print(f"Fail to set RLIMIT_NOFILE: {e}")
 
@@ -1752,7 +1821,8 @@ if __name__ == "__main__":
     parser.add_argument("--dataset", type=str, help="Path to the dataset.")
     parser.add_argument("--debug", action="store_true")
     parser.add_argument("--append", action="store_true")
-    parser.add_argument("--results-path", type=str, default="benchmark-results")
+    parser.add_argument("--results-path", type=str,
+                        default="benchmark-results")
     parser.add_argument("--request-path", type=str, default="output-requests")
     parser.add_argument("--seed", type=int, default=42)
     parser.add_argument(
@@ -1792,13 +1862,17 @@ if __name__ == "__main__":
     parser.add_argument("--enable-elastic-memory", action="store_true")
     parser.add_argument("--req-rate", type=int, default=20)
     parser.add_argument("--real-trace", type=str, default=None)
-    parser.add_argument("--csv-trace", type=str, default=None, help="Path to CSV trace file")
+    parser.add_argument("--csv-trace", type=str,
+                        default=None, help="Path to CSV trace file")
     parser.add_argument("--micro-benchmark", action="store_true")
     parser.add_argument("--e2e-benchmark", action="store_true")
     parser.add_argument("--hyper-trace", action="store_true")
-    parser.add_argument("--hyper-trace-selected-models", nargs='+', type=str, default=None),
-    parser.add_argument("--hyper-trace-per-model-ttft-slo-scale", nargs='+', type=int, default=None),
-    parser.add_argument("--hyper-trace-per-model-tpot-slo-scale", nargs='+', type=int, default=None),
+    parser.add_argument("--hyper-trace-selected-models",
+                        nargs='+', type=str, default=None),
+    parser.add_argument("--hyper-trace-per-model-ttft-slo-scale",
+                        nargs='+', type=int, default=None),
+    parser.add_argument("--hyper-trace-per-model-tpot-slo-scale",
+                        nargs='+', type=int, default=None),
     parser.add_argument("--gpu-scheduler-benchmark", action="store_true"),
     parser.add_argument("--uniform-trace", action="store_true"),
     parser.add_argument("--two-phase-trace", action="store_true"),
@@ -1836,7 +1910,7 @@ if __name__ == "__main__":
                 time_scale=args.time_scale,
                 replication=args.replication,
             )
-            
+
             # Use the TP e2e benchmark method (from trace_1.py)
             requests = RealWorldTrace(
                 pkl_file_path=args.real_trace
@@ -1858,11 +1932,11 @@ if __name__ == "__main__":
                 time_scale=args.time_scale,
                 replication=args.replication,
             )
-            
+
             requests = RealWorldTrace(
                 pkl_file_path=args.real_trace
             ).generate_e2e_benchmark_reqs_18m(config, num_models=args.num_models)
-        
+
         # Check if this is TP mode (model_paths provided directly)
         if args.model_paths is not None:
             # TP mode - run directly
@@ -1873,13 +1947,13 @@ if __name__ == "__main__":
     else:
         # Handle synthetic trace case (no real-trace file provided)
         print("Using synthetic trace generation")
-        
+
         # Create TraceConfig for synthetic trace
         config = TraceConfig(
             req_rate=args.req_rate,
             duration=60,  # default duration
             input_range=(256, 512),  # default input range
-            output_range=(256, 512),  # default output range  
+            output_range=(256, 512),  # default output range
             model_paths=model_paths,
             seed=args.seed,
             alpha=2.1,  # default alpha for power law distribution
@@ -1892,6 +1966,6 @@ if __name__ == "__main__":
             ttft_slo_scale=args.ttft_slo_scale,
             tpot_slo_scale=args.tpot_slo_scale,
         )
-        
+
         # Run benchmark with synthetic trace
         run_benchmark(args, config)

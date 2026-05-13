@@ -18,8 +18,8 @@ The entry point of inference server.
 SRT = SGLang Runtime.
 """
 
-import asyncio
 import atexit
+import asyncio
 import dataclasses
 import json
 import logging
@@ -31,18 +31,11 @@ import threading
 import time
 from http import HTTPStatus
 from typing import Any, AsyncIterator, Dict, List, Optional, Tuple, Union
-
 import orjson
 import torch
-
 from sglang.utils import get_exception_traceback
-
-# Fix a bug of Python threading
-setattr(threading, "_register_atexit", lambda *args, **kwargs: None)
-
 from collections import defaultdict
 from concurrent.futures import ThreadPoolExecutor
-
 import aiohttp
 import requests
 import uvicorn
@@ -51,13 +44,11 @@ from fastapi import FastAPI, File, Form, Request, UploadFile
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse, ORJSONResponse, Response, StreamingResponse
 from uvicorn.config import LOGGING_CONFIG
-
 from sglang.lang.backend.runtime_endpoint import RuntimeEndpoint
 from sglang.multi_model.model_sevice import ModelService
 from sglang.multi_model.multi_model_server_args import MultiModelServerArgs
 from sglang.multi_model.request_handler import RequestHandler
 from sglang.multi_model.request_handler_worker_pool import RequestHandlerWorkerPool
-
 from sglang.multi_model.scheduling.controller_global import run_controller_process
 from sglang.multi_model.scheduling.gpu.gpu_scheduler import run_gpu_scheduler_process
 from sglang.multi_model.utils.load_cpu_model import (
@@ -82,19 +73,13 @@ from sglang.srt.managers.io_struct import (
     UpdateWeightReqInput,
 )
 from sglang.srt.managers.scheduler import run_scheduler_process
-from sglang.srt.redis_utils import RedisClient
 from sglang.srt.server_args import PortArgs, ServerArgs
-from sglang.srt.utils import (
-    add_api_key_middleware,
-    assert_pkg_version,
-    configure_logger,
-    is_port_available,
-    kill_child_process,
-    maybe_set_triton_cache_manager,
-    prepare_model_and_tokenizer,
-    set_ulimit,
-)
-from sglang.utils import get_exception_traceback
+from sglang.srt.redis_utils import RedisClient
+
+
+# Fix a bug of Python threading
+setattr(threading, "_register_atexit", lambda *args, **kwargs: None)
+
 
 logger = logging.getLogger(__name__)
 
@@ -204,7 +189,8 @@ async def deactivate(obj: DeactivateReqInput):
     except Exception as e:
         logger.error(f"Error: {get_exception_traceback()}")
         return ORJSONResponse(
-            {"success": False, "error": {"message": str(e), "type": type(e).__name__}},
+            {"success": False, "error": {
+                "message": str(e), "type": type(e).__name__}},
             status_code=HTTPStatus.BAD_REQUEST,
         )
 
@@ -223,7 +209,8 @@ async def activate(obj: ActivateReqInput):
         )
     except Exception as e:
         return ORJSONResponse(
-            {"success": False, "error": {"message": str(e), "type": type(e).__name__}},
+            {"success": False, "error": {
+                "message": str(e), "type": type(e).__name__}},
             status_code=HTTPStatus.BAD_REQUEST,
         )
 
@@ -502,7 +489,8 @@ def launch_http_server(
 
     # Send a warmup request
     t = threading.Thread(
-        target=_wait_and_warmup, args=(server_args, pipe_finish_writer, os.getpid())
+        target=_wait_and_warmup, args=(
+            server_args, pipe_finish_writer, os.getpid())
     )
     t.start()
 
@@ -553,7 +541,8 @@ def load_shared_cpu_models(
         print(f"Loading {len(model_ids)} shared models to cpu...")
         tic = time.time()
         # NOTE: Load models sequentially to avoid TP size/rank error setting across multi-threads
-        max_workers = len(model_ids) if max_tp_size == 1 or len(model_ids) == 1 else 1
+        max_workers = len(model_ids) if max_tp_size == 1 or len(
+            model_ids) == 1 else 1
         with ThreadPoolExecutor(max_workers=max_workers) as executor:
             shared_cpu_models = list(
                 executor.map(load_shared_cpu_model, model_server_args)
@@ -562,7 +551,6 @@ def load_shared_cpu_models(
         print(f"Shared models loaded in {toc - tic:.2f} seconds.")
         path_to_shared_cpu_models = dict(zip(model_ids, shared_cpu_models))
     return path_to_shared_cpu_models
-
 
 
 def launch_model_service(
@@ -575,7 +563,8 @@ def launch_model_service(
     """
     cpu_model_dict = {}
     for model_path, tp_size in path_to_shared_cpu_models.keys():
-        cpu_model_dict[model_path] = path_to_shared_cpu_models[(model_path, tp_size)][0]
+        cpu_model_dict[model_path] = path_to_shared_cpu_models[(
+            model_path, tp_size)][0]
     num_devices = torch.cuda.device_count()
     gpu_ids = list(range(num_devices))
     input_queue = torch.multiprocessing.Queue()
@@ -623,7 +612,9 @@ def launch_model_engines(
     model_configs = multi_model_server_args.model_configs
     engine_info_dict = defaultdict(list)  # model_name -> list of EngineInfo
     port_args_dict = defaultdict(list)  # model_name -> list of PortArgs
-    gpu_id_to_model_instance = defaultdict(dict)  # gpu_id -> model_name -> instance_idx
+    # gpu_id -> model_name -> instance_idx
+    gpu_id_to_model_instance = defaultdict(dict)
+    init_placements = defaultdict(list)  # GPU ID -> list of model names
     num_engines = 0
 
     def launch_engine_wrapper(args):
@@ -666,6 +657,8 @@ def launch_model_engines(
                 instance_config=instance_config,
             )
             gpu_ids = instance_config.gpu_ids
+            if instance_config.on:
+                init_placements[gpu_ids[0]].append(model_config.model_name)
             print(
                 f"Preparing engine for {server_args.model_name} ({server_args.model_path}) on GPU {gpu_ids} with initialize status on={instance_config.on}"
             )
@@ -712,7 +705,8 @@ def launch_model_engines(
     # Launch engines in parallel with small delays
     all_results = []
     with ThreadPoolExecutor(max_workers=len(engine_launch_args)) as executor:
-        all_results = list(executor.map(launch_engine_wrapper, engine_launch_args))
+        all_results = list(executor.map(
+            launch_engine_wrapper, engine_launch_args))
 
     # Process results
     for model_name, engine_info in all_results:
@@ -728,7 +722,13 @@ def launch_model_engines(
     logger.info(
         f"All {num_engines} engines prepared in {time.perf_counter() - start_time:.2f} seconds."
     )
-    return engine_info_dict, port_args_dict, gpu_id_to_model_instance, num_engines, None
+    return (
+        engine_info_dict,
+        port_args_dict,
+        gpu_id_to_model_instance,
+        num_engines,
+        init_placements,
+    )
 
 
 def launch_worker_pool_engines(
@@ -746,7 +746,8 @@ def launch_worker_pool_engines(
     model_configs = multi_model_server_args.model_configs
     engine_info_dict = defaultdict(list)  # gpu_id -> list of EngineInfo
     port_args_dict = defaultdict(list)  # gpu_id -> list of PortArgs
-    gpu_id_to_model_instance = defaultdict(dict)  # gpu_id -> model_name -> instance_idx
+    # gpu_id -> model_name -> instance_idx
+    gpu_id_to_model_instance = defaultdict(dict)
     num_engines = 0
 
     def launch_engine_wrapper(args):
@@ -831,7 +832,8 @@ def launch_worker_pool_engines(
     # Launch engines in parallel with small delays
     all_results = []
     with ThreadPoolExecutor(max_workers=len(engine_launch_args)) as executor:
-        all_results = list(executor.map(launch_engine_wrapper, engine_launch_args))
+        all_results = list(executor.map(
+            launch_engine_wrapper, engine_launch_args))
 
     # Process results
     for gpu_ids, engine_info in all_results:
@@ -1116,13 +1118,15 @@ def _wait_and_activate(model_name, gpu_id):
         asyncio.run(request_handler.activate(activate_req))
     except Exception:
         last_traceback = get_exception_traceback()
-        logger.error(f"Initialization failed. activate error: {last_traceback}")
+        logger.error(
+            f"Initialization failed. activate error: {last_traceback}")
         return
 
 
 def _wait_and_warmup(url, model_name, pipe_finish_writer, pid):
     headers = {}
-    logger.info(f"Waiting for the server to be ready for model {model_name}...")
+    logger.info(
+        f"Waiting for the server to be ready for model {model_name}...")
 
     # Wait until the server is launched
     success = False
