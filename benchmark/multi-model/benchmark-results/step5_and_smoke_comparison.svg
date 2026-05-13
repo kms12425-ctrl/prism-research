@@ -1,0 +1,44 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1280" height="780" viewBox="0 0 1280 780">
+<rect width="100%" height="100%" fill="#f5f1e8"/>
+<text x="60.0" y="70.0" fill="#111827" font-size="34" font-family="Verdana, sans-serif" font-weight="700">A6000 Benchmark Snapshot</text>
+<text x="60.0" y="102.0" fill="#4b5563" font-size="18" font-family="Verdana, sans-serif" font-weight="400">Smoke baseline metrics plus step5 single-request status</text>
+<rect x="48.0" y="130.0" width="1184.0" height="340.0" rx="18" fill="#fffdf8" stroke="#d6d3d1" stroke-width="1"/>
+<rect x="48.0" y="494.0" width="1184.0" height="238.0" rx="18" fill="#fffdf8" stroke="#d6d3d1" stroke-width="1"/>
+<text x="78.0" y="170.0" fill="#111827" font-size="24" font-family="Verdana, sans-serif" font-weight="700">Smoke Baseline</text>
+<text x="78.0" y="528.0" fill="#111827" font-size="24" font-family="Verdana, sans-serif" font-weight="700">Single Request</text>
+<text x="78.0" y="202.0" fill="#0f766e" font-size="15" font-family="Verdana, sans-serif" font-weight="700">baseline_1model</text>
+<text x="240.0" y="202.0" fill="#d97706" font-size="15" font-family="Verdana, sans-serif" font-weight="700">baseline_2model</text>
+<text x="78.0" y="236.0" fill="#1f2937" font-size="18" font-family="Verdana, sans-serif" font-weight="600">Mean E2E (ms)</text>
+<rect x="300.0" y="214.0" width="820.0" height="16.0" rx="8" fill="#0f766e"/>
+<text x="1134.0" y="227.0" fill="#374151" font-size="14" font-family="Verdana, sans-serif" font-weight="600">4020.87 ms</text>
+<rect x="300.0" y="236.0" width="753.8" height="16.0" rx="8" fill="#d97706"/>
+<text x="1067.8" y="249.0" fill="#374151" font-size="14" font-family="Verdana, sans-serif" font-weight="600">3696.22 ms</text>
+<text x="78.0" y="306.0" fill="#1f2937" font-size="18" font-family="Verdana, sans-serif" font-weight="600">Request Tput (req/s)</text>
+<rect x="300.0" y="284.0" width="818.7" height="16.0" rx="8" fill="#0f766e"/>
+<text x="1132.7" y="297.0" fill="#374151" font-size="14" font-family="Verdana, sans-serif" font-weight="600">1.04 req/s</text>
+<rect x="300.0" y="306.0" width="820.0" height="16.0" rx="8" fill="#d97706"/>
+<text x="1134.0" y="319.0" fill="#374151" font-size="14" font-family="Verdana, sans-serif" font-weight="600">1.04 req/s</text>
+<text x="78.0" y="376.0" fill="#1f2937" font-size="18" font-family="Verdana, sans-serif" font-weight="600">Mean TTFT (ms)</text>
+<rect x="300.0" y="354.0" width="655.4" height="16.0" rx="8" fill="#0f766e"/>
+<text x="969.4" y="367.0" fill="#374151" font-size="14" font-family="Verdana, sans-serif" font-weight="600">17.66 ms</text>
+<rect x="300.0" y="376.0" width="820.0" height="16.0" rx="8" fill="#d97706"/>
+<text x="1134.0" y="389.0" fill="#374151" font-size="14" font-family="Verdana, sans-serif" font-weight="600">22.10 ms</text>
+<text x="78.0" y="446.0" fill="#1f2937" font-size="18" font-family="Verdana, sans-serif" font-weight="600">Mean TPOT (ms)</text>
+<rect x="300.0" y="424.0" width="820.0" height="16.0" rx="8" fill="#0f766e"/>
+<text x="1134.0" y="437.0" fill="#374151" font-size="14" font-family="Verdana, sans-serif" font-weight="600">9.96 ms</text>
+<rect x="300.0" y="446.0" width="755.0" height="16.0" rx="8" fill="#d97706"/>
+<text x="1069.0" y="459.0" fill="#374151" font-size="14" font-family="Verdana, sans-serif" font-weight="600">9.17 ms</text>
+<rect x="80.0" y="556.0" width="540.0" height="140.0" rx="16" fill="#ecfdf5" stroke="#a7f3d0" stroke-width="1"/>
+<text x="108.0" y="592.0" fill="#065f46" font-size="22" font-family="Verdana, sans-serif" font-weight="700">Static baseline</text>
+<text x="108.0" y="624.0" fill="#047857" font-size="18" font-family="Verdana, sans-serif" font-weight="700">success</text>
+<text x="108.0" y="654.0" fill="#065f46" font-size="18" font-family="Verdana, sans-serif" font-weight="600">E2E 392.05 ms</text>
+<text x="308.0" y="654.0" fill="#065f46" font-size="18" font-family="Verdana, sans-serif" font-weight="600">TTFT 76.20 ms</text>
+<text x="108.0" y="684.0" fill="#065f46" font-size="18" font-family="Verdana, sans-serif" font-weight="600">TPOT 9.70 ms</text>
+<text x="308.0" y="684.0" fill="#065f46" font-size="18" font-family="Verdana, sans-serif" font-weight="600">Req Tput 2.551 req/s</text>
+<rect x="660.0" y="556.0" width="540.0" height="140.0" rx="16" fill="#eff6ff" stroke="#bfdbfe" stroke-width="1"/>
+<text x="688.0" y="592.0" fill="#1d4ed8" font-size="22" font-family="Verdana, sans-serif" font-weight="700">Ours</text>
+<text x="688.0" y="624.0" fill="#1d4ed8" font-size="18" font-family="Verdana, sans-serif" font-weight="700">success</text>
+<text x="688.0" y="654.0" fill="#1e40af" font-size="16" font-family="Verdana, sans-serif" font-weight="600">E2E 304.80 ms</text>
+<text x="688.0" y="684.0" fill="#1e40af" font-size="16" font-family="Verdana, sans-serif" font-weight="600">TTFT 13.27 ms, Req Tput 3.281 req/s</text>
+<text x="78.0" y="736.0" fill="#4b5563" font-size="15" font-family="Verdana, sans-serif" font-weight="400">Static baseline single-request run used the low-memory 2x0.5B config to avoid KV-cache startup stalls on the shared GPU.</text>
+</svg>

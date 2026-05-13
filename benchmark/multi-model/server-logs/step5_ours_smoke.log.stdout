@@ -1,0 +1,30 @@
+[transformers] `torch_dtype` is deprecated! Use `dtype` instead!
+[ModelConfig(model_name='model_1', model_path='Qwen/Qwen2.5-0.5B-Instruct', tokenizer_path='Qwen/Qwen2.5-0.5B-Instruct', tp_size=1, init_placements=[{'gpu_ids': [0], 'on': True, 'max_memory_pool_size': 4}]), ModelConfig(model_name='model_2', model_path='Qwen/Qwen2.5-0.5B-Instruct', tokenizer_path='Qwen/Qwen2.5-0.5B-Instruct', tp_size=1, init_placements=[{'gpu_ids': [0], 'on': True, 'max_memory_pool_size': 4}])]
+Initializing torch distributed...
+Torch distributed initialized.
+Loading 1 shared models to cpu...
+INFO 04-28 09:38:16 weight_utils.py:243] Using model weights format ['*.safetensors']
+INFO 04-28 09:38:17 weight_utils.py:288] No model.safetensors.index.json found in remote.
+Loading safetensors checkpoint shards:   0% Completed | 0/1 [00:00<?, ?it/s]
+Loading safetensors checkpoint shards: 100% Completed | 1/1 [00:00<00:00,  1.61it/s]
+Loading safetensors checkpoint shards: 100% Completed | 1/1 [00:00<00:00,  1.61it/s]
+
+Shared models loaded in 7.45 seconds.
+Preparing engine for model_1 (Qwen/Qwen2.5-0.5B-Instruct) on GPU [0] with initialize status on=True
+Preparing engine for model_2 (Qwen/Qwen2.5-0.5B-Instruct) on GPU [0] with initialize status on=True
+Traceback (most recent call last):
+  File "<string>", line 1, in <module>
+  File "/usr/lib/python3.10/multiprocessing/spawn.py", line 116, in spawn_main
+    exitcode = _main(fd, parent_sentinel)
+  File "/usr/lib/python3.10/multiprocessing/spawn.py", line 126, in _main
+    self = reduction.pickle.load(from_parent)
+_pickle.UnpicklingError: pickle data was truncated
+Traceback (most recent call last):
+  File "<string>", line 1, in <module>
+  File "/usr/lib/python3.10/multiprocessing/spawn.py", line 116, in spawn_main
+    exitcode = _main(fd, parent_sentinel)
+  File "/usr/lib/python3.10/multiprocessing/spawn.py", line 126, in _main
+    self = reduction.pickle.load(from_parent)
+_pickle.UnpicklingError: pickle data was truncated
+/usr/lib/python3.10/multiprocessing/resource_tracker.py:224: UserWarning: resource_tracker: There appear to be 1 leaked semaphore objects to clean up at shutdown
+  warnings.warn('resource_tracker: There appear to be %d '

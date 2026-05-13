@@ -1,0 +1,15 @@
+{
+  "mode": "ours",
+  "success": true,
+  "error": "",
+  "latency_s": 0.30480429576709867,
+  "latency_server_s": 0.2987821102142334,
+  "ttft_s": 0.013268709182739258,
+  "wait_time_s": 0.002493619918823242,
+  "tpot_s": 0.00921010971069336,
+  "output_len": 32,
+  "request_throughput": 3.2807936564125764,
+  "mean_e2e_latency_ms": 304.80429576709867,
+  "mean_ttft_ms": 13.268709182739258,
+  "mean_tpot_ms": 9.21010971069336
+}
